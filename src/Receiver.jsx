@@ -8,6 +8,11 @@ export default function Receiver() {
   const pcs = useRef({});
   const pendingCandidates = useRef({});
 
+  const iceServers = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "turn:numb.viagenie.ca", username: "webrtc@live.com", credential: "muazkh" }
+  ];
+
   const joinRoom = () => {
     if (!room.trim()) return alert("Enter a room code");
     socket.emit("join-room", { room });
@@ -21,7 +26,7 @@ export default function Receiver() {
   socket.on("offer", async ({ from, offer }) => {
     if (pcs.current[from]) return;
 
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    const pc = new RTCPeerConnection({ iceServers });
     pcs.current[from] = pc;
     pendingCandidates.current[from] = [];
 
@@ -46,7 +51,7 @@ export default function Receiver() {
       await pc.setLocalDescription(answer);
       socket.emit("answer", { target: from, answer });
 
-      // flush pending ICE
+      // flush pending ICE candidates
       for (const c of pendingCandidates.current[from]) {
         try { await pc.addIceCandidate(c); } catch(e) { console.warn(e); }
       }
